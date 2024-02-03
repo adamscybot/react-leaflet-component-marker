@@ -15,19 +15,19 @@ Install using your projects package manager.
 **NPM**
 
 ```bash
-npm install --save react-leaflet-component-marker
+npm install --save @adamscybot/react-leaflet-component-marker
 ```
 
 **Yarn**
 
 ```bash
-yarn install --save react-leaflet-component-marker
+yarn install --save @adamscybot/react-leaflet-component-marker
 ```
 
 **PNPM**
 
 ```bash
-pnpm add react-leaflet-component-marker
+pnpm add @adamscybot/react-leaflet-component-marker
 ```
 
 ## Usage
@@ -43,7 +43,7 @@ The `icon` prop can also accept all of the original types of icons that the unde
 ```javascript
 import React from 'react'
 import { MapContainer, TileLayer } from 'react-leaflet'
-import { Marker } from 'react-leaflet-component-marker'
+import { Marker } from '@adamscybot/react-leaflet-component-marker'
 import 'leaflet/dist/leaflet.css'
 
 const MarkerIconExample = () => {

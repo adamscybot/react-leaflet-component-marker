@@ -1,12 +1,12 @@
 {
-  "name": "react-leaflet-component-marker",
+  "name": "@adamscybot/react-leaflet-component-marker",
   "version": "1.0.0",
   "description": "A tiny wrapper for react-leaflet's <Marker /> component that allows you to use a React component as a marker, with working state, handlers, and access to parent contexts.",
   "author": "adamscybot",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adamscybot/react-leaflet-component-marker.git"
+    "url": "git+https://github.com/adamscybot/react-leaflet-component-marker.git"
   },
   "bugs": {
     "url": "https://github.com/adamscybot/react-leaflet-component-marker/issues"
@@ -64,5 +64,8 @@
     "branches": [
       "main"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
