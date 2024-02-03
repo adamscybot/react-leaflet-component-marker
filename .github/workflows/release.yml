@@ -45,6 +45,8 @@ jobs:
         run: pnpm install
       - name: Lint
         run: pnpm lint
+      - name: Build
+        run: pnpm build
       - name: Test
         uses: cypress-io/github-action@v6
         with:
