@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "declaration": true,
+    "jsx": "react",
+    "moduleResolution": "Node10",
+    "target": "ES2020",
+    "lib": ["dom", "es2020"],
+    "outDir": "dist",
+    "allowSyntheticDefaultImports": true,
+  },
+  "include": ["./src/**/*", "cypress.config.js"],
+}
