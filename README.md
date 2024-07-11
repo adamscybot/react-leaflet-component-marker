@@ -16,7 +16,9 @@ A tiny wrapper for [react-leaflet](https://react-leaflet.js.org/)'s `<Marker />`
 
 The approach this library uses differs from other approaches that use `renderToString` in that it instead uses React's [Portal](https://react.dev/reference/react-dom/createPortal) functionality to achieve the effect. That means the component is not static, but a full first-class component that can have its own state, event handlers & lifecycle.
 
-I struggled to find something that worked in this way I could drop something in from a design system in there and have all the context available such that it works, and all the interactions working as they should.
+I struggled to find something that worked in a way where I could simply drop something in from a design system, and have all the context available such that it works, as well as all the interactions working as they should.
+
+Many existing packages exist but they use techniques that mean they are very limited.
 
 # Installation
 
@@ -88,14 +90,14 @@ The `componentIconOpts` prop can be passed, which is an object with additional o
 
 Below is a list of properties this object can be provided.
 
-### `layoutMode`
+#### `layoutMode`
 
 The `layoutMode` controls how the bounding box of the React component marker behaves. It accepts two options:
 
 - `fit-content` _(default)_. In this mode, the React component itself defines the dimensions of the marker. The component can shrink and expand at will. Logic internally to this library centers the component on its coordinates to match Leaflets default positioning; however, Leaflet itself is effectively no longer in control of this.
 - `fit-parent`. In this mode, the dimensions of the React component marker are bound by the `iconSize` passed to `componentIconOpts.rootDivOpts`. Leaflet is therefore in control of the dimensions and positioning. Component markers should use elements with 100% width & height to fill the available size if needed.
 
-## `rootDivOpts`
+#### `rootDivOpts`
 
 > [!NOTE]
 > Some options are not supported since they do not apply or make sense in the case of a React component marker. The unsupported options are `html`, `bgPos`, `shadowUrl`, `shadowSize`, `shadowAnchor`, `shadowRetinaUrl`, `iconUrl` and `iconRetinaUrl`.
@@ -104,25 +106,25 @@ An object containing properties from the supported subset of the underlying Leaf
 
 If using `fit-parent`, you must set `iconSize` here.
 
-## `disableScrollPropagation`
+#### `disableScrollPropagation`
 
 `false` by default.
 
 If set to `true`, panning/scrolling the map will not be possible "through" the component marker.
 
-## `disableClickPropagation`
+#### `disableClickPropagation`
 
 `false` by default.
 
 If set to `true`, clicking on the component marker will not be captured by the underlying map.
 
-## `unusedOptsWarning`
+#### `unusedOptsWarning`
 
 `true` by default.
 
 Can be set to `false` in order to not warn in console about cases where `componentIconOpts` was set but `icon` was not a React component.
 
-## `unusedOptsWarning`
+#### `unusedOptsWarning`
 
 `true` by default.
 
