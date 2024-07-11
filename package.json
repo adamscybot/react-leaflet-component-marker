@@ -26,8 +26,8 @@
   "scripts": {
     "lint": "eslint './src/**/*.ts' './src/**/*.tsx'",
     "build": "tsc --project tsconfig.build.json",
-    "test": "cypress run-ct --browser chrome",
-    "test:dev": "cypress open-ct --browser chrome"
+    "test": "cypress run --component --browser chrome",
+    "test:dev": "cypress open --component --browser chrome"
   },
   "devDependencies": {
     "@react-leaflet/core": "^2.1.0",
@@ -58,7 +58,9 @@
     "react-leaflet": "^4.0.0"
   },
   "dependencies": {
-    "react-is": "^18.0.0"
+    "react-is": "^18.0.0",
+    "react-reverse-portal": "^2.1.2",
+    "type-fest": "^4.10.3"
   },
   "release": {
     "branches": [

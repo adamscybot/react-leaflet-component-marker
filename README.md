@@ -1,14 +1,24 @@
-# react-leaflet-component-marker
+<p align="center">
+  <h1 align="center">react-leaflet-component-marker</h1>
+</p>
+<p align="center">
+📍 Use a React component as <a href="https://react-leaflet.js.org/">React Leaflet</a> markers.<br/>
+🔄 Familiar swap-in API that feels like React Leaflet.<br/>
+✨ Can use state, context etc. It's a full component. No BS.<br/>
+💪 It's strongly typed.
 
-A tiny wrapper for [react-leaflet](https://react-leaflet.js.org/)'s `<Marker />` component that allows you to use a React component as a marker, with working state, handlers, and access to parent contexts.
+</p>
+<br/>
+
+# What is it
+
+A tiny wrapper for [react-leaflet](https://react-leaflet.js.org/)'s `<Marker />` component that allows you to use a React component as a marker, with **working state, handlers, and access to parent contexts**.
 
 The approach this library uses differs from other approaches that use `renderToString` in that it instead uses React's [Portal](https://react.dev/reference/react-dom/createPortal) functionality to achieve the effect. That means the component is not static, but a full first-class component that can have its own state, event handlers & lifecycle.
 
-This library is typed via TypeScript.
+I struggled to find something that worked in this way I could drop something in from a design system in there and have all the context available such that it works, and all the interactions working as they should.
 
-# Docs
-
-## Installation
+# Installation
 
 Install using your projects package manager.
 
@@ -30,17 +40,17 @@ yarn install --save @adamscybot/react-leaflet-component-marker
 pnpm add @adamscybot/react-leaflet-component-marker
 ```
 
-## Usage
+# Docs
 
-### Using a React Component as a marker
+## Simple Usage
 
-Instead of importing `Marker` from `react-leaflet`, instead import `Marker` from `react-leaflet-component-marker`.
+Instead of importing `Marker` from `react-leaflet`, instead import `Marker` from `@adamscybot/react-leaflet-component-marker`.
 
 The `icon` prop is extended to allow for a JSX element of your choosing. All other props are identical to the `react-leaflet` [Marker](https://react-leaflet.js.org/docs/api-components/#marker) API.
 
 The `icon` prop can also accept all of the original types of icons that the underlying `react-leaflet` Marker accepts. Though there is no gain in using this library for this case, it may help if you want to just use this library in place of Marker universally.
 
-#### Basic Example
+### Example
 
 ```javascript
 import React from 'react'
@@ -72,18 +82,48 @@ const App = () => {
 }
 ```
 
-### Advanced Sizing and Positioning
+## Advanced Usage
 
-Note, that it is often possible to achieve the desired effect by use of margins/padding on the React icon component itself. However, in some cases, adjustments may be needed to get pixel perfect like popup positioning
+The `componentIconOpts` prop can be passed, which is an object with additional options for more advanced use cases. Note, in the case where you are not passing a component to `icon`, these settings will be ignored.
 
-`iconComponentOpts` can be passed which provides a subset of the [options](https://leafletjs.com/reference.html#icon) that can be passed to an underlying leaflet icon, which is used by this library as an intermediary wrapper. It should be considered an escape hatch.
+Below is a list of properties this object can be provided.
 
-`iconComponentLayout` can be passed to control the alignment and size of the React component. It defaults to `fit-content`, meaning the React Component decides its own size and is not constrained by `iconSize` (which defaults to `[0,0]`). The library automatically handles the alignment of the component such that it is centred horizontally with the marker coordinates, regardless of the component's size (which can even change dynamically). Note the anchor options that can be passed to `iconComponentOpts` remain functional with `fit-content`.
+### `layoutMode`
 
-If more granular control is needed, `iconComponentLayout` can be set `fit-parent` which defers all sizing and positioning to leaflets configuration options, that can be provided via the aforementioned `iconComponentOpts`. This means you will likely need to pass an `iconSize` to `iconComponentOpts`. In this mode, the React icon component should also have a root element that has a width and height of 100%, and it should prevent overflowing. The downside to this approach is the component size is inherently static. The upside is Leaflet knows about the icon size, and so the default anchor coordinates for other elements like popups, will be likely closer to the default expectations.
+The `layoutMode` controls how the bounding box of the React component marker behaves. It accepts two options:
 
-### Gotchas
+- `fit-content` _(default)_. In this mode, the React component itself defines the dimensions of the marker. The component can shrink and expand at will. Logic internally to this library centers the component on its coordinates to match Leaflets default positioning; however, Leaflet itself is effectively no longer in control of this.
+- `fit-parent`. In this mode, the dimensions of the React component marker are bound by the `iconSize` passed to `componentIconOpts.rootDivOpts`. Leaflet is therefore in control of the dimensions and positioning. Component markers should use elements with 100% width & height to fill the available size if needed.
 
-Currently, if any options in `iconComponentOpts` have a material change (new `iconSize` or changed anchors), the React Component will completely remount and lose any state it had. This will be fixed in a future release.
+## `rootDivOpts`
 
-Hot reloading causes markers to disappear. This will be fixed in a future release.
+> [!NOTE]
+> Some options are not supported since they do not apply or make sense in the case of a React component marker. The unsupported options are `html`, `bgPos`, `shadowUrl`, `shadowSize`, `shadowAnchor`, `shadowRetinaUrl`, `iconUrl` and `iconRetinaUrl`.
+
+An object containing properties from the supported subset of the underlying Leaflet [`divIcon`](https://leafletjs.com/reference.html#divicon) options, which this library uses as a containing wrapper.
+
+If using `fit-parent`, you must set `iconSize` here.
+
+## `disableScrollPropagation`
+
+`false` by default.
+
+If set to `true`, panning/scrolling the map will not be possible "through" the component marker.
+
+## `disableClickPropagation`
+
+`false` by default.
+
+If set to `true`, clicking on the component marker will not be captured by the underlying map.
+
+## `unusedOptsWarning`
+
+`true` by default.
+
+Can be set to `false` in order to not warn in console about cases where `componentIconOpts` was set but `icon` was not a React component.
+
+## `unusedOptsWarning`
+
+`true` by default.
+
+Can be set to `false` in order to not warn in console about cases where the `layoutMode` was `fit-parent` but their was no `iconSize` defined in the `rootDivOpts`.

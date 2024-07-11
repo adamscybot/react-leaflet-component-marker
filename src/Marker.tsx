@@ -7,6 +7,8 @@ import React, {
   isValidElement,
   type ComponentType,
   useLayoutEffect,
+  forwardRef,
+  useEffect,
 } from 'react'
 import { isValidElementType } from 'react-is'
 import { createPortal } from 'react-dom'
@@ -15,13 +17,116 @@ import {
   type MarkerProps as ReactLeafletMarkerProps,
 } from 'react-leaflet'
 import {
+  divIcon,
+  DomEvent,
   type LeafletEventHandlerFn,
   type LeafletEventHandlerFnMap,
-  divIcon,
   type PointExpression,
   type DivIconOptions,
+  type Marker as LeafletMarker,
 } from 'leaflet'
-import { getCoordsFromPointExpression } from './utils'
+import { type SetRequired } from 'type-fest'
+import { createHtmlPortalNode, OutPortal, InPortal } from 'react-reverse-portal'
+
+import { useCoordsFromPointExpression } from './lib/useCoordsFromPointExpression'
+import { logCodedString } from './lib/logging'
+
+/**
+ * The possible options for the  {@link ComponentMarkerOpts.layoutMode | `componentIconOpts.layoutMode`} option.
+ **/
+export type ComponentMarkerLayout = 'fit-content' | 'fit-parent'
+
+export type ComponentMarkerRootDivIconOpts = Omit<
+  DivIconOptions,
+  | 'html'
+  | 'bgPos'
+  | 'shadowUrl'
+  | 'shadowSize'
+  | 'shadowAnchor'
+  | 'shadowRetinaUrl'
+  | 'iconUrl'
+  | 'iconRetinaUrl'
+>
+
+type RootDivOpt<
+  RequiredKeys extends keyof ComponentMarkerRootDivIconOpts = never,
+> = {
+  /**
+   * The {@link DivIconOptions} (except for the `html` property and other properties that are not relevant in the context of a React driven marker) that are to be supplied to the `div` wrapper for the leaflet-managed wrapper of the React icon component.
+   *
+   * When setting  {@link ComponentMarkerOpts.layoutMode | `componentIconOpts.layoutMode`} as `'fit-parent'`, it is expected that {@link ComponentMarkerRootDivIconOpts.iconSize | `componentIconOpts.rootDivOpts.iconSize`} is set since this defines the dimensions of the component in this mode.
+   *
+   * @see {@link ComponentMarkerRootDivIconOpts}
+   **/
+  rootDivOpts: SetRequired<ComponentMarkerRootDivIconOpts, RequiredKeys>
+}
+
+type CoreComponentMarkerOpts = {
+  /**
+   * `'fit-content'` disregards the `iconSize` passed to leaflet (defaults to `[0,0]`) and allows the React icon marker to be determined by the size of the provided component itself (which could be dynamic). Automatic alignment compensation is
+   * added to ensure the icon component stays centred on the X axis with the marker.
+   *
+   * `'fit-parent'` will set the container of the component to be the same size as the `iconSize`. Typically, this is used alongside a static icon size that is passed via {@link ComponentMarkerRootDivIconOpts.iconSize | `componentIconOpts.rootDivOpts.iconSize`}. This setup may allow for more granular control over positioning and anchor configuration. The user supplied Icon component itself should use a width and height of `100%` to fill the container.
+   *
+   * @defaultValue `"fit-content"`
+   * @see {@link ComponentMarkerLayout}
+   */
+  layoutMode?: ComponentMarkerLayout
+
+  /**
+   * If set to `true`, panning/scrolling the map will not be possible "through" the component marker.
+   *
+   * This applies to the entire component marker.
+   *
+   * @defaultValue `false`
+   */
+  disableScrollPropagation?: boolean
+
+  /**
+   * If set to `true`, clicking on the component marker will not be captured by the underlying map.
+   *
+   * This applies to the entire component marker. Note this will also disable the ability to activate native react-leaflet
+   * popups via clicking.
+   *
+   * @defaultValue `false`
+   */
+  disableClickPropagation?: boolean
+
+  /**
+   * Enable or disable the console warning about the case where the {@link BaseMarkerProps.componentIconOpts | `componentIconOpts`} prop was set but the {@link BaseMarkerProps.icon | `icon`} prop
+   * is not a component. This would mean those options are unused.
+   *
+   * @defaultValue `true`
+   * @see {@link BaseMarkerProps.componentIconOpts}
+   */
+  unusedOptsWarning?: boolean
+
+  /**
+   * Enable or disable the console warning about the case where {@link ComponentMarkerOpts.layoutMode | `componentIconOpts.layoutMode`} was set to `fit-parent` but the {@link ComponentMarkerRootDivIconOpts.iconSize | `componentIconOpts.rootDivOpts.iconSize`}
+   * has not been set. This would mean the size of the React component icon would not be visible.
+   *
+   * @defaultValue `true`
+   * @see {@link ComponentMarkerOpts.rootDivOpts}
+   * @see {@link ComponentMarkerRootDivIconOpts.iconSize}
+   */
+  rootSizeWarning?: boolean
+}
+
+type UnionKeys<T> = T extends T ? keyof T : never
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StrictUnionHelper<T, TAll> = T extends any
+  ? T & Partial<Record<Exclude<UnionKeys<TAll>, keyof T>, undefined>>
+  : never
+type StrictUnion<T> = StrictUnionHelper<T, T>
+
+export type ComponentMarkerOpts = StrictUnion<
+  | (CoreComponentMarkerOpts & {
+      layoutMode?: 'fit-content'
+    } & Partial<RootDivOpt>)
+  | (CoreComponentMarkerOpts & {
+      layoutMode: 'fit-parent'
+    } & RootDivOpt<'iconSize'>)
+>
 
 type BaseMarkerProps<AdditionalIconTypes = never> = Omit<
   ReactLeafletMarkerProps,
@@ -31,140 +136,174 @@ type BaseMarkerProps<AdditionalIconTypes = never> = Omit<
   icon: ReactElement | AdditionalIconTypes
 
   /**
-   * The {@link DivIconOptions} (except for the `html` property and properties that are not relevant in the context of a React driven marker) that are to be supplied to the `div` wrapper for the leaflet-managed wrapper of the React icon component.
+   * The {@link ComponentMarkerOpts}. These will not be effective if {@link BaseMarkerProps.icon | `icon`} is not set to a React Element or Component, and a warning will be given in the console.
    *
-   * By default, `iconSize` is set to `[0,0]`, which is useful when combined with an "auto" `iconComponentSize` in order to allow for dynamically sized React icon markers.
-   *
-   * Typically, it is not necessary to override these options, and doing so may lead to unexpected results for some properties.
-   *
-   * These options are only effective when a React element/component is being used for the `icon` prop.
-   **/
-  iconComponentOpts?: Omit<
-    DivIconOptions,
-    'html' | 'bgPos' | 'shadowAnchor' | 'shadowRetinaUrl'
-  >
-
-  /**
-   * `"fit-content"` disregards the `iconSize` passed to leaflet (defaults to `[0,0]`) and allows the React icon marker to be determined by the size of the provided component itself (which could be dynamic). Automatic alignment compensation is
-   * added to ensure the icon component stays centred on the X axis with the marker.
-   *
-   * `'fit-parent'` will set the container of the component to be the same size as the `iconSize`. Typically, this is used alongside a static `iconSize` that is passed via `iconComponentOpts`. This setup may allow for more granular control over positioning and anchor configuration. The user supplied Icon component itself should have a root element that has 100% width and height.
-   *
-   * This option is not effective if `icon` is not a React element/component.
-   *
-   * @defaultValue `"fit-content"`
+   * @see {@link ComponentMarkerOpts.unusedOptsWarning}
    */
-  iconComponentLayout: 'fit-content' | 'fit-parent'
+  componentIconOpts?: ComponentMarkerOpts
 }
+
 export type MarkerProps = BaseMarkerProps<
   ReactLeafletMarkerProps['icon'] | ComponentType
 >
 
 const DEFAULT_ICON_SIZE: PointExpression = [0, 0]
-const ComponentMarker = ({
-  eventHandlers: providedEventHandlers,
-  icon: providedIcon,
-  iconComponentOpts = {},
-  iconComponentLayout = 'fit-content',
-  ...otherProps
-}: BaseMarkerProps) => {
-  const [markerRendered, setMarkerRendered] = useState(false)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [changeCount, setChangeCount] = useState(0)
-  const id = 'marker-' + useId()
+const ComponentMarker = forwardRef<LeafletMarker, BaseMarkerProps>(
+  (
+    {
+      eventHandlers: providedEventHandlers,
+      icon: providedIcon,
 
-  const {
-    attribution,
-    className,
-    iconAnchor,
-    iconSize = DEFAULT_ICON_SIZE,
-    pane,
-    popupAnchor,
-    tooltipAnchor,
-  } = iconComponentOpts
+      componentIconOpts: {
+        layoutMode = 'fit-content',
+        disableClickPropagation,
+        disableScrollPropagation,
+        rootDivOpts,
+        rootSizeWarning,
+      } = {},
+      ...otherProps
+    },
+    ref,
+  ) => {
+    const [markerRendered, setMarkerRendered] = useState(false)
+    const [, setChangeCount] = useState(0)
+    const id = 'marker-' + useId()
 
-  const iconDeps = [
-    id,
-    iconComponentLayout,
-    attribution,
-    className,
-    pane,
-    ...getCoordsFromPointExpression(iconSize),
-    ...getCoordsFromPointExpression(iconAnchor),
-    ...getCoordsFromPointExpression(popupAnchor),
-    ...getCoordsFromPointExpression(tooltipAnchor),
-  ]
+    const portalNode = React.useMemo(
+      () =>
+        createHtmlPortalNode({
+          attributes: {
+            'data-react-component-marker': 'portal-parent',
+            style: 'width:100%;height:100%;',
+          },
+        }),
+      [],
+    )
 
-  const icon = useMemo(() => {
-    const parentStyles =
-      iconComponentLayout === 'fit-content'
-        ? 'width: min-content; transform: translateX(-50%)'
-        : 'width: 100%; height: 100%'
-    return divIcon({
-      html: `<div style="${parentStyles}" id="${id}"></div>`,
-      ...(iconSize ? { iconSize } : []),
-      ...(iconAnchor ? { iconAnchor } : []),
-      ...(popupAnchor ? { popupAnchor } : []),
-      ...(tooltipAnchor ? { tooltipAnchor } : []),
-      pane,
+    useEffect(() => {
+      if (
+        rootSizeWarning !== false &&
+        layoutMode === 'fit-parent' &&
+        rootDivOpts?.iconSize === undefined
+      ) {
+        console.warn(
+          logCodedString(
+            'UNBOUND_FIT_PARENT',
+            `The 'componentIconOpts.rootDivOpts.iconSize' option was not set but 'componentIconOpts.layoutMode' was set to 'fit-parent'. This means your React component will not be properly bound by the parent.
+        
+To disable this warning set 'componentIconOpts.rootSizeWarning' to false.`,
+          ),
+        )
+      }
+    }, [layoutMode, rootSizeWarning, rootDivOpts?.iconSize])
+
+    const {
       attribution,
       className,
-    })
-  }, iconDeps)
+      iconAnchor,
+      iconSize = DEFAULT_ICON_SIZE,
+      pane,
+      popupAnchor,
+      tooltipAnchor,
+    } = rootDivOpts ?? {}
 
-  useLayoutEffect(() => {
-    setChangeCount((prev) => prev + 1)
-  }, [icon])
+    const iconDeps = [
+      id,
+      layoutMode,
+      attribution,
+      className,
+      pane,
+      Boolean(disableClickPropagation),
+      Boolean(disableScrollPropagation),
+      ...useCoordsFromPointExpression(iconSize),
+      ...useCoordsFromPointExpression(iconAnchor),
+      ...useCoordsFromPointExpression(popupAnchor),
+      ...useCoordsFromPointExpression(tooltipAnchor),
+    ]
 
-  const handleAddEvent = useCallback<LeafletEventHandlerFn>(
-    (...args) => {
-      setMarkerRendered(true)
-      if (providedEventHandlers?.add) providedEventHandlers.add(...args)
-    },
-    [providedEventHandlers?.add],
-  )
+    const icon = useMemo(() => {
+      const parentStyles =
+        layoutMode === 'fit-content'
+          ? 'width: min-content; transform: translate(-50%, -50%)'
+          : 'width: 100%; height: 100%'
 
-  const handleRemoveEvent = useCallback<LeafletEventHandlerFn>(
-    (...args) => {
-      setMarkerRendered(false)
-      if (providedEventHandlers?.remove) providedEventHandlers.remove(...args)
-    },
-    [providedEventHandlers?.remove],
-  )
+      return divIcon({
+        html: `<div data-react-component-marker="root" style="${parentStyles}" id="${id}"></div>`,
+        ...(iconSize ? { iconSize } : []),
+        ...(iconAnchor ? { iconAnchor } : []),
+        ...(popupAnchor ? { popupAnchor } : []),
+        ...(tooltipAnchor ? { tooltipAnchor } : []),
+        pane,
+        attribution,
+        className,
+      })
+    }, iconDeps)
 
-  const eventHandlers = useMemo<LeafletEventHandlerFnMap>(
-    () => ({
-      ...providedEventHandlers,
-      add: handleAddEvent,
-      remove: handleRemoveEvent,
-    }),
-    [providedEventHandlers, handleAddEvent, handleRemoveEvent],
-  )
+    useLayoutEffect(() => {
+      setChangeCount((prev) => prev + 1)
+    }, [icon])
 
-  let portalTarget: null | HTMLElement = null
-  if (markerRendered) {
-    portalTarget = document.getElementById(id)
-    if (portalTarget === null) {
-      throw new Error(
-        `[react-leaflet-component-marker] Expected marker with id '${id}' to be rendered, but none was found.`,
-      )
+    const handleAddEvent = useCallback<LeafletEventHandlerFn>(
+      (...args) => {
+        setMarkerRendered(true)
+        if (providedEventHandlers?.add) providedEventHandlers.add(...args)
+      },
+      [providedEventHandlers?.add],
+    )
+
+    const handleRemoveEvent = useCallback<LeafletEventHandlerFn>(
+      (...args) => {
+        setMarkerRendered(false)
+        if (providedEventHandlers?.remove) providedEventHandlers.remove(...args)
+      },
+      [providedEventHandlers?.remove],
+    )
+
+    const eventHandlers = useMemo<LeafletEventHandlerFnMap>(
+      () => ({
+        ...providedEventHandlers,
+        add: handleAddEvent,
+        remove: handleRemoveEvent,
+      }),
+      [providedEventHandlers, handleAddEvent, handleRemoveEvent],
+    )
+
+    let portalTarget: null | HTMLElement = null
+    if (markerRendered) {
+      portalTarget = document.getElementById(id)
     }
-  }
 
-  return (
-    <>
-      <ReactLeafletMarker
-        {...otherProps}
-        eventHandlers={eventHandlers}
-        icon={icon}
-      />
+    useEffect(() => {
+      if (!portalTarget) return
 
-      {markerRendered &&
-        portalTarget !== null &&
-        createPortal(providedIcon, portalTarget, JSON.stringify(iconDeps))}
-    </>
-  )
-}
+      if (disableClickPropagation) {
+        DomEvent.disableClickPropagation(portalTarget)
+      }
+
+      if (disableScrollPropagation) {
+        DomEvent.disableScrollPropagation(portalTarget)
+      }
+    }, [portalTarget, disableClickPropagation, disableScrollPropagation])
+
+    return (
+      <>
+        <ReactLeafletMarker
+          ref={ref}
+          {...otherProps}
+          eventHandlers={eventHandlers}
+          icon={icon}
+        />
+
+        {markerRendered && portalTarget !== null && (
+          <>
+            <InPortal node={portalNode}>{providedIcon}</InPortal>
+            {createPortal(<OutPortal node={portalNode} />, portalTarget)}
+          </>
+        )}
+      </>
+    )
+  },
+)
 
 /**
  * A modified version of the [react-leaflet Marker](https://react-leaflet.js.org/docs/api-components/#marker) component that is extended such that it allows a {@link ReactElement} to be used as the icon.
@@ -186,19 +325,62 @@ const ComponentMarker = ({
  * <Marker position={[51.505, -0.091]} icon={<MarkerIconExample />} />
  * ```
  **/
-export const Marker = ({ icon: Icon, ...otherProps }: MarkerProps) => {
-  if (isValidElement(Icon)) {
-    return <ComponentMarker icon={Icon} {...otherProps} />
-  }
+export const Marker = forwardRef<LeafletMarker, MarkerProps>(
+  ({ icon: Icon, componentIconOpts, ...otherProps }, ref) => {
+    const validElement = isValidElement(Icon)
+    const validComponent = isValidElementType(Icon)
 
-  if (isValidElementType(Icon)) {
-    return <ComponentMarker icon={<Icon />} {...otherProps} />
-  }
+    useEffect(() => {
+      if (
+        !validElement &&
+        !validComponent &&
+        componentIconOpts !== undefined &&
+        componentIconOpts.unusedOptsWarning !== false
+      ) {
+        console.warn(
+          logCodedString(
+            'UNUSED_OPTIONS',
+            `The 'componentIconOpts' prop was set but the 'icon' prop was not set to a React component or element. These options will be unused.
+        
+  To disable this warning set 'componentIconOpts.unusedOptsWarning' to false.`,
+          ),
+        )
+      }
+    }, [
+      componentIconOpts,
+      componentIconOpts?.unusedOptsWarning,
+      validElement,
+      validComponent,
+    ])
 
-  return (
-    <ReactLeafletMarker
-      icon={Icon as ReactLeafletMarkerProps['icon']}
-      {...otherProps}
-    />
-  )
-}
+    if (validElement) {
+      return (
+        <ComponentMarker
+          ref={ref}
+          icon={Icon}
+          componentIconOpts={componentIconOpts}
+          {...otherProps}
+        />
+      )
+    }
+
+    if (validComponent) {
+      return (
+        <ComponentMarker
+          ref={ref}
+          icon={<Icon />}
+          componentIconOpts={componentIconOpts}
+          {...otherProps}
+        />
+      )
+    }
+
+    return (
+      <ReactLeafletMarker
+        ref={ref}
+        icon={Icon as ReactLeafletMarkerProps['icon']}
+        {...otherProps}
+      />
+    )
+  },
+)
