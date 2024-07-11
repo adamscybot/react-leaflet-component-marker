@@ -2,13 +2,14 @@
   <h1 align="center">react-leaflet-component-marker</h1>
 </p>
 <p align="center">
+👉 <a href="https://stackblitz.com/edit/react-leaflet-component-marker"><strong>DEMO</strong></a>
+</p>
+<p align="center">
 📍 Use a React component as <a href="https://react-leaflet.js.org/">React Leaflet</a> markers.<br/>
 🔄 Familiar swap-in API that feels like React Leaflet.<br/>
 ✨ Can use state, context etc. It's a full component. No BS.<br/>
 💪 It's strongly typed.
-
 </p>
-<br/>
 
 # What is it
 
