@@ -47,9 +47,9 @@ pnpm add @adamscybot/react-leaflet-component-marker
 
 ## Simple Usage
 
-Instead of importing `Marker` from `react-leaflet`, instead import `Marker` from `@adamscybot/react-leaflet-component-marker`.
+Instead of importing `Marker` from `react-leaflet`, import `Marker` from `@adamscybot/react-leaflet-component-marker`.
 
-The `icon` prop is extended to allow for a JSX element of your choosing. All other props are identical to the `react-leaflet` [Marker](https://react-leaflet.js.org/docs/api-components/#marker) API.
+The `icon` prop is extended to allow for a JSX element of your choosing. All other props are identical to the `react-leaflet` [Marker](https://react-leaflet.js.org/docs/api-components/#marker) API, but there is an additional prop called `componentIconOpts` for [Advanced Usage](#advanced-usage).
 
 The `icon` prop can also accept all of the original types of icons that the underlying `react-leaflet` Marker accepts. Though there is no gain in using this library for this case, it may help if you want to just use this library in place of Marker universally.
 
