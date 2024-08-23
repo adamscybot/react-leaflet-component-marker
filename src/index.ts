@@ -1,1 +1,1 @@
-export { Marker, type MarkerProps } from './Marker'
+export { Marker, type MarkerProps } from './Marker.js'

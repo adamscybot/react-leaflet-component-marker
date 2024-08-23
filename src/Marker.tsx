@@ -28,8 +28,8 @@ import {
 import { type SetRequired } from 'type-fest'
 import { createHtmlPortalNode, OutPortal, InPortal } from 'react-reverse-portal'
 
-import { useCoordsFromPointExpression } from './lib/useCoordsFromPointExpression'
-import { logCodedString } from './lib/logging'
+import { useCoordsFromPointExpression } from './lib/useCoordsFromPointExpression.js'
+import { logCodedString } from './lib/logging.js'
 
 /**
  * The possible options for the  {@link ComponentMarkerOpts.layoutMode | `componentIconOpts.layoutMode`} option.

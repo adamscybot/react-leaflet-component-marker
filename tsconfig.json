@@ -2,6 +2,7 @@
   "extends": "./tsconfig.build.json",
   "include": [
     "./src/**/*",
+    "./@types/react-leaflet-core.d.ts",
     "cypress/**/*",
     "cypress.config.js",
     ".eslintrc.cjs",
