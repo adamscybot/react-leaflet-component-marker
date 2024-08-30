@@ -5,6 +5,6 @@
     "./@types/react-leaflet-core.d.ts",
     "cypress/**/*",
     "cypress.config.js",
-    ".eslintrc.cjs",
-  ],
+    ".eslintrc.cjs"
+  ]
 }

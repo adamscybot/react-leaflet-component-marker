@@ -10,5 +10,12 @@ const getCoordsFromPointExpression = (expression?: PointExpression) => {
   }
 }
 
+/**
+ * Converts any {@link PointExpression} to a {@link PointTuple},
+ * which is easier for us to manipulate, and reduces branching downstream.
+ *
+ * @param expression  Any {@link PointExpression}
+ * @returns Equivalent {@link PointTuple}
+ */
 export const useCoordsFromPointExpression = (expression?: PointExpression) =>
   useMemo(() => getCoordsFromPointExpression(expression), [expression])

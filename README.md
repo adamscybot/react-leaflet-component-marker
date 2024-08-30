@@ -6,14 +6,17 @@
 </p>
 <p align="center">
 📍 Use a React component as <a href="https://react-leaflet.js.org/">React Leaflet</a> markers.<br/>
-🔄 Familiar swap-in API that feels like React Leaflet.<br/>
+🔄 Swap-in API that feels like React Leaflet (yup, popups & tooltips too).<br/>
 ✨ Can use state, context etc. It's a full component. No BS.<br/>
-💪 It's strongly typed.
+🖼️ Powerful layout options with sensible automated defaults. Put your icon where you want.
+💪 It's a strongly typed ESM package, automatically tested against a real browser.
 </p>
 
 # What is it
 
-A tiny wrapper for [react-leaflet](https://react-leaflet.js.org/)'s `<Marker />` component that allows you to use a React component as a marker, with **working state, handlers, and access to parent contexts**.
+A wrapper for [react-leaflet](https://react-leaflet.js.org/)'s `<Marker />` component that allows you to use a React component as a marker icon, with **working state, handlers, and access to parent contexts**. It also works with existing [react-leaflet](https://react-leaflet.js.org/) functionality that supplements markers, i.e. `<Popup>` and `<Tooltip>`.
+
+It handles markers of any size (dynamically) and positioning is handled for you. If you like, you can also tune this with a sensible API that hides away Leaflet's cumbersome absolute-pixel-offsets approach. Want your icon anchored below the coordinates rather than above? No problem.
 
 The approach this library uses differs from other approaches that use `renderToString` in that it instead uses React's [Portal](https://react.dev/reference/react-dom/createPortal) functionality to achieve the effect. That means the component is not static, but a full first-class component that can have its own state, event handlers & lifecycle.
 
@@ -96,7 +99,7 @@ Below is a list of properties this object can be provided.
 The `layoutMode` controls how the bounding box of the React component marker behaves. It accepts two options:
 
 - `fit-content` _(default)_. In this mode, the React component itself defines the dimensions of the marker. The component can shrink and expand at will. Logic internally to this library centers the component on its coordinates to match Leaflets default positioning; however, Leaflet itself is effectively no longer in control of this.
-- `fit-parent`. In this mode, the dimensions of the React component marker are bound by the `iconSize` passed to `componentIconOpts.rootDivOpts`. Leaflet is therefore in control of the dimensions and positioning. Component markers should use elements with 100% width & height to fill the available size if needed.
+- `fit-parent`. In this mode, the dimensions of the React component marker are bound by the `iconSize` passed to `componentIconOpts.manualLayoutOpts`. Leaflet is therefore in control of the dimensions and positioning. Component markers should use elements with 100% width & height to fill the available size if needed.
 
 #### `rootDivOpts`
 
@@ -129,4 +132,4 @@ Can be set to `false` in order to not warn in console about cases where `compone
 
 `true` by default.
 
-Can be set to `false` in order to not warn in console about cases where the `layoutMode` was `fit-parent` but their was no `iconSize` defined in the `rootDivOpts`.
+Can be set to `false` in order to not warn in console about cases where the `layoutMode` was `fit-parent` but their was no `iconSize` defined in the `manualLayoutOpts`.
