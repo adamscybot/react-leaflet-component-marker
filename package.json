@@ -59,7 +59,7 @@
   },
   "dependencies": {
     "react-is": "^18.3.1",
-    "react-reverse-portal": "^2.1.2",
+    "react-reverse-portal": "^2.2.0",
     "type-fest": "^4.30.2"
   },
   "release": {
